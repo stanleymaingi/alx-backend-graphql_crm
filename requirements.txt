@@ -1,0 +1,4 @@
+Django>=4.2
+django-crontab
+gql>=3.0
+requests
