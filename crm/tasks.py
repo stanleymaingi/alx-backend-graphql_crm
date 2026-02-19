@@ -1,4 +1,4 @@
-import datetime
+import datetime  # for timestamps
 from celery import shared_task
 from gql import gql, Client
 from gql.transport.requests import RequestsHTTPTransport
@@ -9,9 +9,11 @@ LOG_FILE = "/tmp/crm_report_log.txt"
 def generate_crm_report():
     """
     Generates a weekly CRM report with total customers, orders, and revenue.
+    Logs the report to /tmp/crm_report_log.txt with timestamp.
     """
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+    # GraphQL query to fetch totals
     query = gql("""
     query {
       totalCustomers: customersCount
@@ -25,6 +27,7 @@ def generate_crm_report():
     """)
 
     try:
+        # GraphQL client setup
         transport = RequestsHTTPTransport(
             url="http://localhost:8000/graphql",
             verify=True,
@@ -37,8 +40,8 @@ def generate_crm_report():
         total_orders = result.get("totalOrders", 0)
         total_revenue = result.get("totalRevenue", {}).get("sum", {}).get("totalamount", 0)
 
+        # Log the report
         log_message = f"{timestamp} - Report: {total_customers} customers, {total_orders} orders, {total_revenue} revenue\n"
-
         with open(LOG_FILE, "a") as f:
             f.write(log_message)
 
