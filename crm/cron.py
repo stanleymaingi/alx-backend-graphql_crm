@@ -80,3 +80,46 @@ def send_order_reminders():
         with open(ORDER_REMINDER_LOG_FILE, "a") as log_file:
             timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             log_file.write(f"{timestamp} - Error fetching orders: {e}\n")
+
+
+            LOW_STOCK_LOG_FILE = "/tmp/low_stock_updates_log.txt"
+
+def update_low_stock():
+    """
+    Executes the UpdateLowStockProducts mutation and logs updates.
+    """
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    mutation = """
+    mutation UpdateLowStockProducts($increment: Int!) {
+      updateLowStockProducts(increment: $increment) {
+        updatedProducts {
+          name
+          stock
+        }
+        message
+      }
+    }
+    """
+    variables = {"increment": 10}
+
+    try:
+        transport = RequestsHTTPTransport(
+            url="http://localhost:8000/graphql",
+            verify=True,
+            retries=3
+        )
+        client = Client(transport=transport, fetch_schema_from_transport=True)
+        result = client.execute(gql(mutation), variable_values=variables)
+
+        updated_products = result["updateLowStockProducts"]["updatedProducts"]
+
+        if updated_products:
+            with open(LOW_STOCK_LOG_FILE, "a") as f:
+                for product in updated_products:
+                    f.write(f"{timestamp} - Product: {product['name']}, New Stock: {product['stock']}\n")
+
+        print("Low-stock products updated!")
+    except Exception as e:
+        with open(LOW_STOCK_LOG_FILE, "a") as f:
+            f.write(f"{timestamp} - Error updating low-stock products: {e}\n")
